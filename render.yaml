@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: flowstock-api
+    env: node
+    region: oregon  # Or choose your region
+    plan: free
+    
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node src/server.js
+    
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      
+      # Database
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flowstock-db
+          property: connectionString
+      
+      # Kafka (from Upstash)
+      - key: KAFKA_BROKERS
+        sync: false
+      - key: KAFKA_USERNAME
+        sync: false
+      - key: KAFKA_PASSWORD
+        sync: false
+      - key: KAFKA_TOPIC
+        value: inventory-events
+      - key: KAFKA_GROUP_ID
+        value: flowstock-consumer
+      
+      # JWT
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      
+      # CORS
+      - key: FRONTEND_URL
+        sync: false
+
+databases:
+  - name: flowstock-db
+    databaseName: flowstock
+    user: flowstock_user
+    region: oregon

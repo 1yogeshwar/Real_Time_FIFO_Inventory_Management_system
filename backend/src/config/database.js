@@ -1,36 +1,12 @@
 const { Pool } = require('pg');
 
-console.log('📊 Database Config Loading...');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Using DATABASE_URL:', process.env.DATABASE_URL ? 'Yes' : 'No');
-
-// Use DATABASE_URL if available (Render provides this)
-// Otherwise fall back to individual env vars
-const poolConfig = process.env.DATABASE_URL 
-  ? {
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' 
-        ? { rejectUnauthorized: false }  // Required for Render
-        : false,
-      max: 20,  // Connection pool size
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    }
-  : {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'flowstock',
-      user: process.env.DB_USER || 'admin',
-      password: process.env.DB_PASSWORD || 'admin123',
-    };
-
-console.log('🔧 Pool Config:', {
-  hasURL: !!process.env.DATABASE_URL,
-  ssl: poolConfig.ssl ? 'enabled' : 'disabled',
-  prod: process.env.NODE_ENV === 'production'
+const pool = new Pool({
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'flowstock',
+  user: process.env.DB_USER || 'admin',
+  password: process.env.DB_PASSWORD || 'admin123',
 });
-
-const pool = new Pool(poolConfig);
 
 // Test connection
 pool.on('connect', () => {
@@ -103,7 +79,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Create sale_batch_details table
+    // Create sale_batch_details table (which batches were used)
     await client.query(`
       CREATE TABLE IF NOT EXISTS sale_batch_details (
         id SERIAL PRIMARY KEY,
@@ -116,7 +92,7 @@ const initDatabase = async () => {
       )
     `);
 
-    // Create transactions_log table
+    // Create transactions_log table (for ledger view)
     await client.query(`
       CREATE TABLE IF NOT EXISTS transactions_log (
         id SERIAL PRIMARY KEY,
@@ -130,7 +106,8 @@ const initDatabase = async () => {
       )
     `);
 
-    // Insert default user
+    // Insert default user (username: admin, password: admin123)
+    // Password hash for 'admin123' using bcrypt
     await client.query(`
       INSERT INTO users (username, password)
       VALUES ('admin', '$2a$10$8K1p/a0dL3LzYWfN9X5Qs.KGZWzZb3DqU3rYxHvYGJv6YHv5L/3Oa')
